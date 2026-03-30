@@ -6,11 +6,8 @@ AI教师Agent - LLM服务
 
 import os
 import json
-import logging
 from typing import Optional, Dict, Any, List
 from openai import AsyncOpenAI
-
-logger = logging.getLogger(__name__)
 
 
 class LLMService:
@@ -23,15 +20,23 @@ class LLMService:
         self.api_base = settings.LLM_API_BASE
         self.model = settings.LLM_MODEL
 
+        print(f"========== LLM Config ==========")
+        print(f"API_KEY: {self.api_key[:10] if self.api_key else 'None'}...")
+        print(f"API_BASE: {self.api_base}")
+        print(f"MODEL: {self.model}")
+        print(f"================================")
+
         # 如果没有配置API，使用Mock
         if not self.api_key or self.api_key == "mock":
             self.use_mock = True
+            print(">>> Using MOCK LLM Service <<<")
         else:
             self.use_mock = False
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.api_base,
             )
+            print(">>> Using REAL LLM Service <<<")
 
     async def generate(
         self,
@@ -53,7 +58,7 @@ class LLMService:
             生成的内容
         """
         if self.use_mock:
-            logger.info("========== Using Mock LLM ==========")
+            print("========== Using Mock LLM ==========")
             return self._mock_generate(prompt)
 
         messages = []
@@ -61,11 +66,11 @@ class LLMService:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        logger.info(f"========== LLM API Request ==========")
-        logger.info(f"Model: {self.model}")
-        logger.info(f"API Base: {self.api_base}")
-        logger.info(f"Messages: {json.dumps(messages, ensure_ascii=False, indent=2)}")
-        logger.info(f"Temperature: {temperature}, Max Tokens: {max_tokens}")
+        print(f"========== LLM API Request ==========")
+        print(f"Model: {self.model}")
+        print(f"API Base: {self.api_base}")
+        print(f"Messages: {json.dumps(messages, ensure_ascii=False, indent=2)}")
+        print(f"Temperature: {temperature}, Max Tokens: {max_tokens}")
 
         try:
             response = await self.client.chat.completions.create(
@@ -75,11 +80,11 @@ class LLMService:
                 max_tokens=max_tokens,
             )
             content = response.choices[0].message.content
-            logger.info(f"========== LLM API Response ==========")
-            logger.info(f"Response length: {len(content)} characters")
-            logger.info(f"Response preview: {content[:300]}...")
-            logger.info(f"Usage: {response.usage}")
-            logger.info(f"======================================")
+            print(f"========== LLM API Response ==========")
+            print(f"Response length: {len(content)} characters")
+            print(f"Response preview: {content[:300]}...")
+            print(f"Usage: {response.usage}")
+            print(f"======================================")
             return content
         except Exception as e:
             logger.error(f"LLM调用失败: {e}")
@@ -131,6 +136,8 @@ class LLMService:
         duration: int = 1,
     ) -> Dict[str, Any]:
         """生成教案"""
+        print(f">>> generate_lesson_plan called: {subject} - {topic}")
+
         system_prompt = """你是一位资深的教育专家，擅长设计教案。
 请根据提供的信息，生成一份完整的教案。
 教案应该包含：教学目标、教学重难点、教学过程、板书设计、课后作业等部分。
@@ -149,6 +156,7 @@ class LLMService:
 5. 课后作业"""
 
         content = await self.generate(prompt, system_prompt)
+        print(f">>> generate_lesson_plan completed, content length: {len(content)}")
 
         return {
             "content": content,
@@ -164,5 +172,6 @@ def get_llm_service() -> LLMService:
     """获取LLM服务实例"""
     global _llm_service
     if _llm_service is None:
+        print(">>> Creating new LLMService instance <<<")
         _llm_service = LLMService()
     return _llm_service

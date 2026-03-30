@@ -313,8 +313,11 @@ async def _generate_lesson_plan_with_ai(plan_data: LessonPlanCreate) -> dict:
     import logging
     import time
     from app.core.llm import get_llm_service
+    import json
 
     logger = logging.getLogger(__name__)
+    print(f"========== LLM Request Start ==========")
+    print(f"plan_data: {json.dumps(plan_data.model_dump(), ensure_ascii=False)}")
     start_time = time.time()
 
     # 从 grade 推断学段

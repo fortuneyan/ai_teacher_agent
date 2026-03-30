@@ -4,7 +4,35 @@ AI教师Agent Web后端 - FastAPI 应用入口
 
 import sys
 import os
+import logging
 from pathlib import Path
+
+# 配置日志 - 输出到文件和控制台
+log_dir = Path(__file__).parent.parent / "logs"
+log_dir.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_dir / "app.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+
+
+# 重定向 print 到日志
+class PrintLogger:
+    def write(self, message):
+        if message.strip():
+            logging.info(message)
+
+    def flush(self):
+        pass
+
+
+sys.stdout = PrintLogger()
+sys.stderr = PrintLogger()
 
 # 添加项目根目录到Python路径，以便导入Agent代码
 # 从 web/backend/app/main.py 向上4级到达项目根目录
