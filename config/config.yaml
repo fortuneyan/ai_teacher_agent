@@ -1,0 +1,157 @@
+# AI_Teacher Agent 配置文件
+
+# LLM 配置
+llm:
+  provider: "ai.baishan.com"  # 可选: openai, anthropic, mock
+  model: "GLM-5"      # 模型名称
+  temperature: 0.7    # 生成温度
+  max_tokens: 4096    # 最大token数
+  api_key: "sk-4eaG3BtjdbmME5gcB4F99b51100448B28779C7Ba7494366a"         # API密钥，留空则使用base_url
+  # base_url 支持本地部署或其他兼容OpenAI API的服务
+  # 示例:
+  #   - 本地Ollama: "http://localhost:11434/v1"
+  #   - 本地LM Studio: "http://localhost:1234/v1"
+  #   - Groq: "https://api.groq.com/openai/v1"
+  #   - 硅基流动: "https://api.siliconflow.cn/v1"
+  base_url: "https://api.edgefn.net/v1"
+
+# Agent 配置
+agent:
+  name: "AI_Teacher"
+  version: "1.0.0"
+  description: "AI教师助手，能够自主收集教材、设计教案、生成课件、制定进度计划"
+  
+  # System Message 配置
+  system_prompt:
+    role: "教师"
+    expertise:
+      - "课程设计"
+      - "教案编写"
+      - "教学大纲制定"
+      - "课件制作"
+      - "教学进度规划"
+    communication_style: "专业、耐心、条理清晰"
+    output_format: "结构化输出，包含标题、内容、建议等部分"
+
+# 工具配置
+tools:
+  # 搜索工具
+  search:
+    enabled: true
+    provider: "duckduckgo"  # 可选: duckduckgo, google, bing
+    max_results: 10
+  
+  # 文件操作工具
+  file:
+    enabled: true
+    base_dir: "./knowledge_base"
+    output_dir: "./output"
+  
+  # PPT生成工具
+  ppt:
+    enabled: true
+    template_dir: "./templates"
+    output_format: "pptx"
+
+# 知识库配置
+knowledge_base:
+  # 课程标准库
+  curriculum_standards:
+    enabled: true
+    path: "./knowledge_base/curriculum_standards"
+    embedding_model: "text-embedding-ada-002"
+  
+  # 教材内容库
+  textbooks:
+    enabled: true
+    path: "./knowledge_base/textbooks"
+  
+  # 教学经验库
+  teaching_experience:
+    enabled: true
+    path: "./knowledge_base/teaching_experience"
+
+# Pipeline 配置
+pipeline:
+  # 默认工作流
+  default_workflow: "full_course_design"
+  
+  # 工作流定义
+  workflows:
+    full_course_design:
+      name: "完整课程设计"
+      steps:
+        - skill: "collect_materials"
+          description: "收集教材内容"
+        - skill: "design_lesson"
+          description: "设计教案"
+        - skill: "outline_summary"
+          description: "归纳教学大纲"
+        - skill: "generate_ppt"
+          description: "生成PPT课件"
+        - skill: "schedule_plan"
+          description: "制定进度计划"
+
+# 输出配置
+output:
+  # 教案格式
+  lesson_plan:
+    format: "markdown"
+    filename_template: "{course_name}_教案.md"
+  
+  # 教学大纲格式
+  syllabus:
+    format: "markdown"
+    filename_template: "{course_name}_教学大纲.md"
+  
+  # PPT格式
+  ppt:
+    format: "pptx"
+    filename_template: "{course_name}_课件.pptx"
+  
+  # 进度计划格式
+  schedule:
+    format: "json"
+    filename_template: "{course_name}_进度计划.json"
+
+# MCP (Model Context Protocol) 配置
+# 参考 Agent开发指南 4.9节 MCP协议详解
+mcp:
+  # 是否启用 MCP
+  enabled: true
+  
+  # MCP 服务器列表
+  servers:
+    # 示例: 文件系统服务器
+    # - name: "filesystem"
+    #   command: "npx"
+    #   args: ["-y", "@modelcontextprotocol/server-filesystem", "./knowledge_base"]
+    #   enabled: false
+    
+    # 示例: GitHub 服务器 (需要设置 GITHUB_TOKEN 环境变量)
+    # - name: "github"
+    #   command: "npx"
+    #   args: ["-y", "@modelcontextprotocol/server-github"]
+    #   env:
+    #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
+    #   enabled: false
+    
+    # 示例: 浏览器自动化服务器
+    # - name: "browser"
+    #   command: "npx"
+    #   args: ["-y", "@modelcontextprotocol/server-browser"]
+    #   enabled: false
+    
+    # 示例: Slack 服务器
+    # - name: "slack"
+    #   command: "npx"
+    #   args: ["-y", "@modelcontextprotocol/server-slack"]
+    #   env:
+    #     SLACK_BOT_TOKEN: "${SLACK_BOT_TOKEN}"
+    #   enabled: false
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/ai_teacher.log"
