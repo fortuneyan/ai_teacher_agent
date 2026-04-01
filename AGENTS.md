@@ -288,7 +288,7 @@ Main configuration in `config/config.yaml`:
 5. Add tests in `tests/models/`
 
 ### Adding a New Skill
-1. Create module in `src/skills/`
+1. Create module in `skills/` (Native Skill) or `skills/soft/skills/` (Soft Skill)
 2. Define skill class with clear interface
 3. Add comprehensive error handling
 4. Add tests in `tests/skills/`
