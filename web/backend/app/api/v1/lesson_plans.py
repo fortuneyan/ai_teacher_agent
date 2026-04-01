@@ -354,7 +354,7 @@ async def _generate_lesson_plan_with_ai(plan_data: LessonPlanCreate) -> dict:
 
     # ── 获取 LLM 服务，注入到备课助手 ──────────────────────────────────────────
     from app.core.llm import get_llm_service
-    from skills.lesson_preparation import LessonPreparationAssistant
+    from skills.native.lesson_preparation import LessonPreparationAssistant
 
     llm_service = get_llm_service()
     assistant = LessonPreparationAssistant(llm_service=llm_service)
@@ -403,7 +403,7 @@ async def _generate_lesson_plan_with_ai(plan_data: LessonPlanCreate) -> dict:
 
     # 生成 Markdown 格式正文（复用 assistant 的格式化方法）
     from dataclasses import fields as dc_fields
-    from skills.lesson_preparation import LessonPlan as SkillLessonPlan
+    from skills.native.lesson_preparation import LessonPlan as SkillLessonPlan
 
     try:
         lp_obj = SkillLessonPlan(**{

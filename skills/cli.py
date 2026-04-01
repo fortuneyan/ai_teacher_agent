@@ -17,7 +17,7 @@ from typing import Optional, Dict, Any
 import asyncio
 
 # 导入核心模块
-from skills.lesson_preparation import (
+from skills.native.lesson_preparation import (
     LessonPreparationAssistant,
     complete_lesson_preparation,
     FeedbackEvaluator,
@@ -25,7 +25,7 @@ from skills.lesson_preparation import (
     design_detailed_teaching_process
 )
 
-from skills.teaching_assessment import (
+from skills.native.teaching_assessment import (
     ExerciseGenerator,
     TestPaperGenerator,
     TeachingExplainer,
@@ -147,7 +147,7 @@ class LessonPreparationCLI:
             return
         
         # 模拟反馈评估
-        from skills.lesson_preparation import UserFeedback
+        from skills.native.lesson_preparation import UserFeedback
         
         feedback = UserFeedback(
             feedback_type="modify",

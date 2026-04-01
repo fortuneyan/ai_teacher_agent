@@ -11,7 +11,7 @@ from models import (
     CourseBasicInfo, TeachingObjectives,
     QuestionType, DifficultyLevel, TestPaperType
 )
-from skills.teaching_assessment import (
+from skills.native.teaching_assessment import (
     ExerciseGenerator, TestPaperGenerator,
     TeachingExplainer, AnswerEvaluator
 )

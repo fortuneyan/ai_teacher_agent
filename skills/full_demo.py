@@ -16,7 +16,7 @@ import asyncio
 import sys
 
 # 导入核心模块
-from skills.lesson_preparation import (
+from skills.native.lesson_preparation import (
     LessonPreparationAssistant,
     complete_lesson_preparation,
     generate_detailed_objectives,
@@ -26,7 +26,7 @@ from skills.lesson_preparation import (
     LessonPlan
 )
 
-from skills.teaching_assessment import (
+from skills.native.teaching_assessment import (
     ExerciseGenerator,
     TestPaperGenerator,
     TeachingExplainer,

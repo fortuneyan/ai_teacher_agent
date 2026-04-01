@@ -53,29 +53,30 @@ from skills._base import (
 
 from skills.native import (
     # 备课技能
-    LessonPreparationSkill,
-    FeedbackProcessingSkill,
-    LESSON_PREPARATION_METADATA,
-    FEEDBACK_PROCESSING_METADATA,
-    native_complete_lesson_preparation,
+    LessonPreparationAssistant,
+    complete_lesson_preparation,
+    FeedbackEvaluator,
+    LessonPlan,
+    UserFeedback,
+    generate_detailed_objectives,
+    design_detailed_teaching_process,
     
     # 评估技能
-    ExerciseGeneratorSkill,
-    TestPaperGeneratorSkill,
-    TeachingExplainerSkill,
-    AnswerEvaluatorSkill,
-    EXERCISE_GENERATOR_METADATA,
-    TEST_PAPER_GENERATOR_METADATA,
-    TEACHING_EXPLAINER_METADATA,
-    ANSWER_EVALUATOR_METADATA,
-    native_exercise_generator,
+    ExerciseGenerator,
+    TestPaperGenerator,
+    TeachingExplainer,
+    AnswerEvaluator,
+    QuestionType,
+    Difficulty,
+    PaperType,
+    PaperConfig,
 )
 
 # ==================== 原始模块导入（向后兼容） ====================
 
-# 保留从原始位置导入的能力
-from skills import lesson_preparation
-from skills import teaching_assessment
+# 保留从 native 子目录导入的能力
+from skills.native import lesson_preparation
+from skills.native import teaching_assessment
 
 # ==================== 初始化和管理函数 ====================
 
@@ -216,22 +217,23 @@ __all__ = [
     "SoftSkillTemplate",
     
     # Native Skills - 备课
-    "LessonPreparationSkill",
-    "FeedbackProcessingSkill",
-    "LESSON_PREPARATION_METADATA",
-    "FEEDBACK_PROCESSING_METADATA",
-    "native_complete_lesson_preparation",
+    "LessonPreparationAssistant",
+    "complete_lesson_preparation",
+    "FeedbackEvaluator",
+    "LessonPlan",
+    "UserFeedback",
+    "generate_detailed_objectives",
+    "design_detailed_teaching_process",
     
     # Native Skills - 评估
-    "ExerciseGeneratorSkill",
-    "TestPaperGeneratorSkill",
-    "TeachingExplainerSkill",
-    "AnswerEvaluatorSkill",
-    "EXERCISE_GENERATOR_METADATA",
-    "TEST_PAPER_GENERATOR_METADATA",
-    "TEACHING_EXPLAINER_METADATA",
-    "ANSWER_EVALUATOR_METADATA",
-    "native_exercise_generator",
+    "ExerciseGenerator",
+    "TestPaperGenerator",
+    "TeachingExplainer",
+    "AnswerEvaluator",
+    "QuestionType",
+    "Difficulty",
+    "PaperType",
+    "PaperConfig",
     
     # 模块（向后兼容）
     "lesson_preparation",

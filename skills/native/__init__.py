@@ -5,73 +5,103 @@ skills.native - Native Skills 模块
 
 使用方式:
 ```python
-from skills.native import (
-    LessonPreparationSkill,
-    ExerciseGeneratorSkill,
-    TestPaperGeneratorSkill,
+from skills.native.lesson_preparation import LessonPreparationAssistant
+
+assistant = LessonPreparationAssistant()
+result = await assistant.prepare_lesson(
+    course_name="高中数学",
+    topic="函数的概念",
+    education_level="高中"
 )
-
-# 直接使用
-skill = LessonPreparationSkill(llm_service=my_llm)
-result = await skill.execute({
-    "education_level": "高中",
-    "subject": "数学",
-    "topic": "函数的概念"
-})
-
-# 通过注册中心使用
-from skills._base import SkillRegistry, SkillExecutor
-
-SkillRegistry.register_native(LessonPreparationSkill)
-executor = SkillExecutor(llm_service=my_llm)
-result = await executor.execute("lesson_preparation", context)
 ```
 """
 
-# ==================== 核心技能 ====================
+# ==================== 备课技能 ====================
 
 from .lesson_preparation import (
-    # Native Skill 类
-    LessonPreparationSkill,
-    FeedbackProcessingSkill,
-    # 元数据
-    LESSON_PREPARATION_METADATA,
-    FEEDBACK_PROCESSING_METADATA,
+    # 核心类
+    LessonPreparationAssistant,
+    CurriculumStandardFetcher,
+    ResourceSearcher,
+    ContentGenerator,
+    FeedbackProcessor,
+    FeedbackEvaluator,
+    # 数据类
+    LessonPlan,
+    Courseware,
+    TeachingResource,
+    CurriculumStandard,
+    UserFeedback,
+    FeedbackEvaluation,
+    ResourceType,
+    ContentQuality,
     # 便捷函数
-    native_complete_lesson_preparation,
+    prepare_lesson,
+    process_user_feedback,
+    complete_lesson_preparation,
+    generate_detailed_objectives,
+    design_detailed_teaching_process,
 )
 
+# ==================== 评估技能 ====================
+
 from .teaching_assessment import (
-    # Native Skill 类
-    ExerciseGeneratorSkill,
-    TestPaperGeneratorSkill,
-    TeachingExplainerSkill,
-    AnswerEvaluatorSkill,
-    # 元数据
-    EXERCISE_GENERATOR_METADATA,
-    TEST_PAPER_GENERATOR_METADATA,
-    TEACHING_EXPLAINER_METADATA,
-    ANSWER_EVALUATOR_METADATA,
-    # 便捷函数
-    native_exercise_generator,
+    # 核心类
+    ExerciseGenerator,
+    TestPaperGenerator,
+    TeachingExplainer,
+    AnswerEvaluator,
+    # 数据类
+    Question,
+    TestPaper,
+    Explanation,
+    EvaluationResult,
+    # 枚举和配置
+    QuestionType,
+    Difficulty,
+    PaperType,
+    PaperConfig,
+    ExplanationType,
+    EvaluationType,
+    ScoreLevel,
 )
 
 __all__ = [
     # 备课技能
-    "LessonPreparationSkill",
-    "FeedbackProcessingSkill",
-    "LESSON_PREPARATION_METADATA",
-    "FEEDBACK_PROCESSING_METADATA",
-    "native_complete_lesson_preparation",
+    "LessonPreparationAssistant",
+    "CurriculumStandardFetcher",
+    "ResourceSearcher",
+    "ContentGenerator",
+    "FeedbackProcessor",
+    "FeedbackEvaluator",
+    "LessonPlan",
+    "Courseware",
+    "TeachingResource",
+    "CurriculumStandard",
+    "UserFeedback",
+    "FeedbackEvaluation",
+    "ResourceType",
+    "ContentQuality",
+    "prepare_lesson",
+    "process_user_feedback",
+    "complete_lesson_preparation",
+    "generate_detailed_objectives",
+    "design_detailed_teaching_process",
     
     # 评估技能
-    "ExerciseGeneratorSkill",
-    "TestPaperGeneratorSkill",
-    "TeachingExplainerSkill",
-    "AnswerEvaluatorSkill",
-    "EXERCISE_GENERATOR_METADATA",
-    "TEST_PAPER_GENERATOR_METADATA",
-    "TEACHING_EXPLAINER_METADATA",
-    "ANSWER_EVALUATOR_METADATA",
-    "native_exercise_generator",
+    "ExerciseGenerator",
+    "TestPaperGenerator",
+    "TeachingExplainer",
+    "AnswerEvaluator",
+    "Question",
+    "TestPaper",
+    "Explanation",
+    "EvaluationResult",
+    "QuestionType",
+    "Difficulty",
+    "PaperType",
+    "PaperConfig",
+    "ExplanationType",
+    "EvaluationType",
+    "ScoreLevel",
 ]
