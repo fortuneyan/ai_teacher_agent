@@ -200,7 +200,7 @@ class DesignLessonSkill:
         self, course_name: str, lesson_plan: Dict[str, Any], course_info: Dict[str, Any]
     ) -> None:
         """保存教案到知识库"""
-        from ai_teacher_agent.tools.file_tools import MarkdownGenerator, FileTool
+        from tools.file_tools import MarkdownGenerator, FileTool
 
         generator = MarkdownGenerator()
         textbook_name = course_info.get("textbook_name", "")

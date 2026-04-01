@@ -18,22 +18,49 @@ export const lessonPlanAPI = {
 
   generate(data) {
     if (USE_MOCK) return mockGeneratePlan(data)
-    const gradeMap = {
-      'grade1': '高一', 'grade2': '高二', 'grade3': '高三',
-      'grade4': '大一', 'grade5': '大二', 'grade6': '大三', 'grade7': '大四',
-      'grade8': '初一', 'grade9': '初二', 'grade10': '初三',
-      'grade11': '一年级', 'grade12': '二年级', 'grade13': '三年级',
-      'grade14': '四年级', 'grade15': '五年级', 'grade16': '六年级',
+    // 根据学段获取正确的年级映射
+    const levelGradeMap = {
+      primary: {
+        'grade1': '一年级', 'grade2': '二年级', 'grade3': '三年级',
+        'grade4': '四年级', 'grade5': '五年级', 'grade6': '六年级',
+      },
+      middle: {
+        'grade1': '初一', 'grade2': '初二', 'grade3': '初三',
+      },
+      high: {
+        'grade1': '高一', 'grade2': '高二', 'grade3': '高三',
+      },
+      university: {
+        'grade1': '大一', 'grade2': '大二', 'grade3': '大三', 'grade4': '大四',
+      },
     }
+    
+    // 根据学段获取默认年级
+    const defaultGrades = {
+      primary: '一年级',
+      middle: '初一',
+      high: '高一',
+      university: '大一',
+    }
+    
+    const gradeMapForLevel = levelGradeMap[data.level] || {}
+    let grade = gradeMapForLevel[data.grade]
+    
+    // 如果映射失败，使用该学段的默认年级
+    if (!grade) {
+      grade = defaultGrades[data.level] || '高一'
+      console.warn(`Grade mapping failed for level=${data.level}, grade=${data.grade}, using default: ${grade}`)
+    }
+    
     const payload = {
       subject: data.subject,
-      grade: gradeMap[data.grade] || data.grade,
+      grade: grade,
       topic: data.topic,
       version: '人教版',
       duration: parseInt(data.duration) || 1,
       custom_objectives: data.objectives ? [data.objectives] : null,
     }
-    console.trace('Generating lesson plan with payload:', payload)
+    console.log('Generating lesson plan with payload:', payload)
     return request.post('/lesson-plans/', payload)
   },
 

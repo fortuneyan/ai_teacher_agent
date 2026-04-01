@@ -155,7 +155,7 @@ class OutlineSummarySkill:
         course_info: Dict[str, Any],
     ) -> None:
         """保存教学大纲"""
-        from ai_teacher_agent.tools.file_tools import MarkdownGenerator, FileTool
+        from tools.file_tools import MarkdownGenerator, FileTool
 
         generator = MarkdownGenerator()
         textbook_name = course_info.get("textbook_name", "")

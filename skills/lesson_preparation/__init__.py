@@ -13,6 +13,7 @@
 
 import json
 import re
+import uuid
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -574,12 +575,13 @@ class ContentGenerator:
         })
         
         # 导入
+        first_step = lesson_plan.teaching_process[0] if lesson_plan.teaching_process else {}
         slides.append({
             "number": 3,
             "type": "introduction",
             "title": "情境导入",
-            "content": lesson_plan.teaching_process[0]["activities"],
-            "duration": lesson_plan.teaching_process[0]["duration"]
+            "content": first_step.get("activities", first_step.get("teacher_activity", "")),
+            "duration": first_step.get("duration", "5")
         })
         
         # 新知讲解（多页）
@@ -1112,3 +1114,349 @@ async def process_user_feedback(
         suggested_change=suggested_change
     )
     return await assistant.process_feedback(lesson_plan, feedback)
+
+
+# ==================== 扩展功能：细化教学目标生成 ====================
+
+def generate_detailed_objectives(
+    standards: List[CurriculumStandard],
+    topic: str
+) -> Dict[str, Any]:
+    """
+    生成细化的三维教学目标
+    
+    Args:
+        standards: 课程标准列表
+        topic: 教学主题
+        
+    Returns:
+        教学目标字典
+    """
+    # 从课标中提取要求
+    all_knowledge = []
+    all_ability = []
+    for std in standards:
+        all_knowledge.extend(std.knowledge_objectives)
+        all_ability.extend(std.ability_objectives)
+    
+    return {
+        "knowledge_objectives": [
+            f"理解{topic}的基本概念",
+            f"掌握{topic}的核心原理",
+            f"能够描述{topic}的主要特征"
+        ] + (all_knowledge[:2] if all_knowledge else []),
+        "skill_objectives": [
+            f"能够运用{topic}解决简单问题",
+            "培养分析和归纳能力",
+            "提升逻辑推理能力"
+        ] + (all_ability[:2] if all_ability else []),
+        "emotion_objectives": [
+            "激发学习兴趣和求知欲",
+            "培养严谨的科学思维习惯"
+        ],
+        "competency_objectives": [
+            "发展学科核心素养",
+            "培养科学探究能力"
+        ],
+        "status": "confirmed"
+    }
+
+
+# ==================== 扩展功能：详细教学过程设计 ====================
+
+def design_detailed_teaching_process(
+    objectives: Dict[str, Any],
+    suggested_hours: int,
+    key_points: Optional[List[str]] = None,
+    difficult_points: Optional[List[str]] = None
+) -> List[Dict[str, Any]]:
+    """
+    设计详细的教学过程
+    
+    Args:
+        objectives: 教学目标
+        suggested_hours: 建议课时
+        key_points: 教学重点
+        difficult_points: 教学难点
+        
+    Returns:
+        教学步骤列表
+    """
+    # 计算总时间（每节课45分钟）
+    minutes_per_lesson = 45
+    total_minutes = suggested_hours * minutes_per_lesson
+    
+    return [
+        {
+            "step": 1,
+            "phase": "导入",
+            "duration": f"{int(total_minutes * 0.1)}分钟",
+            "teacher_activity": "创设情境，提出问题",
+            "student_activity": "观察思考，回答问题",
+            "design_intent": "激发学习兴趣，建立知识联系",
+            "key_points": ["引起注意", "激活旧知"]
+        },
+        {
+            "step": 2,
+            "phase": "新授",
+            "duration": f"{int(total_minutes * 0.45)}分钟",
+            "teacher_activity": "讲解概念，引导探究，示范例题",
+            "student_activity": "认真听讲，参与探究，思考例题",
+            "design_intent": "构建知识体系，理解核心概念",
+            "key_points": key_points or ["概念理解", "原理掌握"]
+        },
+        {
+            "step": 3,
+            "phase": "练习",
+            "duration": f"{int(total_minutes * 0.3)}分钟",
+            "teacher_activity": "组织练习，巡视指导，点评纠错",
+            "student_activity": "独立完成练习，小组讨论",
+            "design_intent": "巩固知识，掌握方法",
+            "key_points": ["技能训练", "方法应用"]
+        },
+        {
+            "step": 4,
+            "phase": "小结",
+            "duration": f"{int(total_minutes * 0.1)}分钟",
+            "teacher_activity": "引导总结，强调重点",
+            "student_activity": "回顾反思，归纳整理",
+            "design_intent": "梳理知识，形成网络",
+            "key_points": ["知识梳理", "方法总结"]
+        },
+        {
+            "step": 5,
+            "phase": "作业",
+            "duration": "课后",
+            "teacher_activity": "布置分层作业",
+            "student_activity": "完成作业，预习新知",
+            "design_intent": "巩固拓展，培养能力",
+            "key_points": ["基础巩固", "能力提升"]
+        }
+    ]
+
+
+# ==================== 扩展功能：反馈评估与教案修改 ====================
+
+class FeedbackEvaluator:
+    """反馈评估器 - 简单规则版本"""
+    
+    RELEVANCE_KEYWORDS = ['增加', '删除', '修改', '调整', '添加', '优化']
+    
+    @staticmethod
+    def evaluate_feedback(feedback: UserFeedback, lesson_plan: LessonPlan) -> Dict[str, Any]:
+        """
+        评估用户反馈
+        
+        Args:
+            feedback: 用户反馈
+            lesson_plan: 当前教案
+            
+        Returns:
+            评估结果字典
+        """
+        content = feedback.content
+        
+        # 评估相关性
+        relevance_score = 0.5
+        for keyword in FeedbackEvaluator.RELEVANCE_KEYWORDS:
+            if keyword in content:
+                relevance_score += 0.1
+        relevance_score = min(relevance_score, 0.95)
+        
+        # 评估可行性
+        feasibility_score = 0.7
+        if len(content) > 10:
+            feasibility_score += 0.1
+        if any(kw in content for kw in ['例子', '练习', '活动', '时间']):
+            feasibility_score += 0.1
+        feasibility_score = min(feasibility_score, 0.95)
+        
+        # 综合决策
+        confidence = (relevance_score + feasibility_score) / 2
+        if confidence > 0.7:
+            decision = "accepted"
+        elif confidence > 0.4:
+            decision = "partial"
+        else:
+            decision = "rejected"
+        
+        reasoning = f"反馈相关性: {relevance_score:.2f}, 可行性: {feasibility_score:.2f}"
+        
+        return {
+            "decision": decision,
+            "confidence": confidence,
+            "relevance_score": relevance_score,
+            "feasibility_score": feasibility_score,
+            "reasoning": reasoning
+        }
+    
+    @staticmethod
+    def modify_lesson_plan(
+        lesson_plan: LessonPlan,
+        feedback: UserFeedback,
+        evaluation: Dict[str, Any]
+    ) -> Tuple[LessonPlan, Dict[str, Any]]:
+        """
+        根据反馈修改教案
+        
+        Args:
+            lesson_plan: 当前教案
+            feedback: 用户反馈
+            evaluation: 评估结果
+            
+        Returns:
+            (修改后的教案, 更新记录)
+        """
+        if evaluation["decision"] == "rejected":
+            return lesson_plan, {
+                "update_id": f"UPD-{uuid.uuid4().hex[:8].upper()}",
+                "status": "rejected",
+                "description": f"反馈被拒绝: {feedback.content[:30]}..."
+            }
+        
+        # 创建副本进行修改
+        updated_plan = LessonPlan(
+            course_name=lesson_plan.course_name,
+            topic=lesson_plan.topic,
+            duration=lesson_plan.duration,
+            education_level=lesson_plan.education_level,
+            knowledge_objectives=lesson_plan.knowledge_objectives.copy(),
+            ability_objectives=lesson_plan.ability_objectives.copy(),
+            emotion_objectives=lesson_plan.emotion_objectives.copy(),
+            key_points=lesson_plan.key_points.copy(),
+            difficult_points=lesson_plan.difficult_points.copy(),
+            teaching_methods=lesson_plan.teaching_methods.copy(),
+            teaching_process=[step.copy() for step in lesson_plan.teaching_process],
+            blackboard_design=lesson_plan.blackboard_design,
+            resources_needed=lesson_plan.resources_needed.copy(),
+            homework=lesson_plan.homework.copy(),
+            reflection_questions=lesson_plan.reflection_questions.copy(),
+            version=lesson_plan.version,
+            created_at=lesson_plan.created_at,
+            source_resources=lesson_plan.source_resources.copy()
+        )
+        
+        content = feedback.content
+        
+        # 简单的关键词匹配修改
+        if "增加" in content or "添加" in content:
+            if "例子" in content or "实例" in content:
+                updated_plan.knowledge_objectives.append("能够运用实例理解概念")
+            if "练习" in content and updated_plan.teaching_process:
+                # 添加一个新的练习环节
+                new_step = {
+                    "stage": "巩固练习",
+                    "duration": 10,
+                    "activities": ["额外巩固练习", "学生展示"],
+                    "methods": "练习法"
+                }
+                updated_plan.teaching_process.append(new_step)
+        
+        # 版本递增
+        try:
+            parts = updated_plan.version.split(".")
+            major = int(parts[0])
+            minor = int(parts[1]) + 1 if len(parts) > 1 else 1
+            updated_plan.version = f"{major}.{minor}"
+        except:
+            updated_plan.version = "1.1"
+        
+        update_record = {
+            "update_id": f"UPD-{uuid.uuid4().hex[:8].upper()}",
+            "status": "applied",
+            "description": f"根据反馈修改: {feedback.content[:50]}..."
+        }
+        
+        return updated_plan, update_record
+
+
+# ==================== 扩展功能：完整备课流程 ====================
+
+async def complete_lesson_preparation(
+    course_name: str,
+    topic: str,
+    education_level: str = "高中",
+    suggested_hours: int = 2
+) -> Dict[str, Any]:
+    """
+    执行完整的备课流程（6步）
+    
+    Args:
+        course_name: 课程名称
+        topic: 课时主题
+        education_level: 教育阶段
+        suggested_hours: 建议课时
+        
+    Returns:
+        完整的备课结果
+    """
+    print(f"\n开始为《{topic}》备课...")
+    
+    assistant = LessonPreparationAssistant()
+    
+    # 1. 获取课程标准
+    print("  [1/6] 获取课程标准...")
+    standard = await assistant.standard_fetcher.fetch(course_name, topic)
+    
+    # 2. 搜索教学资源
+    print("  [2/6] 搜索教学资源...")
+    resources = await assistant.resource_searcher.search_all(course_name, topic)
+    all_resources = []
+    for res_list in resources.values():
+        all_resources.extend(res_list)
+    total_resources = sum(len(r) for r in resources.values())
+    print(f"        找到 {total_resources} 个资源")
+    
+    # 3. 生成细化教学目标
+    print("  [3/6] 生成教学目标...")
+    standards_for_objectives = [standard] if standard else []
+    objectives = generate_detailed_objectives(standards_for_objectives, topic)
+    total_objectives = (
+        len(objectives.get("knowledge_objectives", [])) +
+        len(objectives.get("skill_objectives", [])) +
+        len(objectives.get("emotion_objectives", []))
+    )
+    print(f"        生成 {total_objectives} 个目标")
+    
+    # 4. 生成教案
+    print("  [4/6] 生成教案...")
+    lesson_plan = await assistant.content_generator.generate_lesson_plan(
+        course_name, topic, standard, all_resources
+    )
+    
+    # 5. 设计详细教学过程
+    print("  [5/6] 设计教学过程...")
+    detailed_process = design_detailed_teaching_process(
+        objectives, suggested_hours
+    )
+    lesson_plan.teaching_process = detailed_process
+    print(f"        设计 {len(detailed_process)} 个教学环节")
+    
+    # 6. 生成课件大纲
+    print("  [6/6] 生成课件...")
+    courseware = await assistant.content_generator.generate_courseware(lesson_plan, all_resources)
+    print(f"        生成 {len(courseware.slides)} 页课件")
+    
+    # 整合结果
+    result = {
+        "course_name": course_name,
+        "topic": topic,
+        "education_level": education_level,
+        "curriculum_standard": asdict(standard) if standard else {},
+        "objectives": objectives,
+        "lesson_plan": asdict(lesson_plan),
+        "courseware": asdict(courseware),
+        "resources": {
+            res_type.value: [asdict(r) for r in res_list]
+            for res_type, res_list in resources.items()
+        },
+        "metadata": {
+            "generated_at": datetime.now().isoformat(),
+            "version": lesson_plan.version,
+            "total_resources": total_resources,
+            "total_slides": len(courseware.slides)
+        }
+    }
+    
+    print("\n备课完成!")
+    return result

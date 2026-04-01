@@ -205,7 +205,7 @@ class GeneratePPTSkill:
         course_info: Dict[str, Any] = None,
     ) -> None:
         """保存PPT大纲"""
-        from ai_teacher_agent.tools.file_tools import MarkdownGenerator, FileTool
+        from tools.file_tools import MarkdownGenerator, FileTool
 
         generator = MarkdownGenerator()
         textbook_name = course_info.get("textbook_name", "") if course_info else ""

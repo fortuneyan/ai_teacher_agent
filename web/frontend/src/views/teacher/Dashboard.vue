@@ -32,7 +32,7 @@
             <el-row :gutter="16">
               <el-col :span="12">
                 <el-form-item label="学段" prop="level">
-                  <el-select v-model="form.level" placeholder="选择学段" style="width:100%">
+                  <el-select v-model="form.level" placeholder="选择学段" style="width:100%" @change="handleLevelChange">
                     <el-option label="小学" value="primary" />
                     <el-option label="初中" value="middle" />
                     <el-option label="高中" value="high" />
@@ -212,7 +212,7 @@ const generatedPlan = ref(null)
 const form = ref({
   level: 'high',
   subject: 'math',
-  grade: 'grade10',
+  grade: 'grade1',  // 默认高中一年级
   duration: '1',
   topic: '',
   objectives: '',
@@ -226,18 +226,28 @@ const rules = {
   topic: [{ required: true, message: '请输入课题', trigger: 'blur' }],
 }
 
+// 根据学段获取年级列表
+const gradeListMap = {
+  primary: ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
+  middle: ['初一', '初二', '初三'],
+  high: ['高一', '高二', '高三'],
+  university: ['大一', '大二', '大三', '大四'],
+}
+
 const gradeOptions = computed(() => {
-  const map = {
-    primary: ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
-    middle: ['初一', '初二', '初三'],
-    high: ['高一', '高二', '高三'],
-    university: ['大一', '大二', '大三', '大四'],
-  }
-  return (map[form.value.level] || []).map((label, i) => ({
+  const list = gradeListMap[form.value.level] || []
+  return list.map((label, i) => ({
     label,
     value: `grade${i + 1}`,
   }))
 })
+
+// 切换学段时重置年级为该学段第一个年级
+function handleLevelChange() {
+  if (gradeOptions.value.length > 0) {
+    form.value.grade = gradeOptions.value[0].value
+  }
+}
 
 const stats = ref([
   { label: '本月教案', value: 0, color: '#1971C2' },

@@ -50,8 +50,8 @@ class CollectMaterialsSkill:
 
         # 使用搜索工具收集教材
         if self.search_tool:
-            from ai_teacher_agent.tools.search_tools import TextbookCollector
-            from ai_teacher_agent.tools.search_tools import CurriculumStandardFetcher
+            from tools.search_tools import TextbookCollector
+            from tools.search_tools import CurriculumStandardFetcher
 
             # 收集教材
             collector = TextbookCollector(self.search_tool)
@@ -119,7 +119,7 @@ class CollectMaterialsSkill:
         self, course_info: Dict[str, Any], materials: Dict, standards: Dict
     ) -> None:
         """保存到知识库"""
-        from ai_teacher_agent.tools.file_tools import FileTool
+        from tools.file_tools import FileTool
 
         course_name = course_info.get("course_name", "")
         textbook_name = course_info.get("textbook_name", "")

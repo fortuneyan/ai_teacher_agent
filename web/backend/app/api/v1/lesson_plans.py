@@ -308,200 +308,134 @@ async def export_lesson_plan(
 
 async def _generate_lesson_plan_with_ai(plan_data: LessonPlanCreate) -> dict:
     """
-    调用真实LLM生成教案内容
+    调用 skills/lesson_preparation 中的 LessonPreparationAssistant 生成教案内容。
+
+    流程：
+    1. 构建 LessonPreparationAssistant，注入真实 LLM 服务
+    2. 调用 assistant.prepare_lesson() — 内部会完成：
+       获取课程标准 → 搜索资源 → ContentGenerator.generate_lesson_plan()（调用 LLM）→ 生成课件
+    3. 将返回的结构化教案转换为 Web 接口需要的格式
     """
     import logging
     import time
-    from app.core.llm import get_llm_service
-    import json
 
     logger = logging.getLogger(__name__)
-    print(f"========== LLM Request Start ==========")
-    print(f"plan_data: {json.dumps(plan_data.model_dump(), ensure_ascii=False)}")
-    start_time = time.time()
 
-    # 从 grade 推断学段
+    # ── 学科英文到中文映射 ──────────────────────────────────────────────────────
+    subject_map = {
+        "math": "数学", "chinese": "语文", "english": "英语",
+        "physics": "物理", "chemistry": "化学", "biology": "生物",
+        "history": "历史", "geography": "地理", "politics": "政治",
+        "music": "音乐", "art": "美术", "pe": "体育",
+    }
+    subject_cn = subject_map.get(plan_data.subject, plan_data.subject)
+
+    # ── 从 grade 推断学段 ──────────────────────────────────────────────────────
     education_level = "高中"
     if plan_data.grade:
-        if (
-            "高一" in plan_data.grade
-            or "高二" in plan_data.grade
-            or "高三" in plan_data.grade
-        ):
+        if any(k in plan_data.grade for k in ("高一", "高二", "高三")):
             education_level = "高中"
-        elif (
-            "初一" in plan_data.grade
-            or "初二" in plan_data.grade
-            or "初三" in plan_data.grade
-        ):
+        elif any(k in plan_data.grade for k in ("初一", "初二", "初三")):
             education_level = "初中"
-        else:
+        elif any(k in plan_data.grade for k in ("大一", "大二", "大三", "大四")):
+            education_level = "大学"
+        elif any(k in plan_data.grade for k in ("一年级", "二年级", "三年级", "四年级", "五年级", "六年级")):
             education_level = "小学"
 
-    # 准备发送到LLM的数据
-    llm_request_data = {
-        "subject": plan_data.subject,
-        "topic": plan_data.topic,
-        "grade": plan_data.grade,
-        "education_level": education_level,
-        "duration": plan_data.duration or 1,
-    }
+    # ── 构造课程名称（用于查询课程标准）─────────────────────────────────────────
+    # STANDARDS_DB 的键格式是 "高中数学"、"初中数学" 等
+    course_name = f"{education_level}{subject_cn}"
+    topic = plan_data.topic
 
-    logger.info(f"========== LLM Request ==========")
-    logger.info(
-        f"请求数据: {json.dumps(llm_request_data, ensure_ascii=False, indent=2)}"
+    print(f"========== LessonPreparationAssistant Start ==========")
+    print(f"course_name={course_name}, topic={topic}, grade={plan_data.grade}")
+
+    start_time = time.time()
+
+    # ── 获取 LLM 服务，注入到备课助手 ──────────────────────────────────────────
+    from app.core.llm import get_llm_service
+    from skills.lesson_preparation import LessonPreparationAssistant
+
+    llm_service = get_llm_service()
+    assistant = LessonPreparationAssistant(llm_service=llm_service)
+
+    # ── 调用核心 generate_lesson_plan 流程 ─────────────────────────────────────
+    result = await assistant.prepare_lesson(
+        course_name=course_name,
+        topic=topic,
+        education_level=education_level,
     )
 
-    # 调用LLM服务生成教案
-    llm = get_llm_service()
-    result = await llm.generate_lesson_plan(**llm_request_data)
-
-    content = result["content"]
-    topic = plan_data.topic
     generation_time = time.time() - start_time
 
-    logger.info(f"========== LLM Response ==========")
-    logger.info(f"返回数据长度: {len(content)} 字符")
-    logger.info(f"返回内容预览:\n{content[:500]}...")
-    logger.info(f"==================================")
+    # ── 从结构化教案提取数据 ───────────────────────────────────────────────────
+    lesson_plan_dict = result.get("lesson_plan", {})
+    teaching_process = lesson_plan_dict.get("teaching_process", [])
 
-    # 提取教学目标（简单解析）
-    objectives = _extract_objectives(content)
+    # 教学目标
+    objectives = {
+        "knowledge": lesson_plan_dict.get("knowledge_objectives", []),
+        "skill":     lesson_plan_dict.get("ability_objectives", []),
+        "emotion":   lesson_plan_dict.get("emotion_objectives", []),
+    }
 
-    # 提取教学流程（简单解析）
-    teaching_flow = _extract_teaching_flow(content)
+    # 教学重难点
+    key_points_list = lesson_plan_dict.get("key_points", [])
+    difficult_points_list = lesson_plan_dict.get("difficult_points", [])
+    key_points_str = (
+        f"**重点**: {'、'.join(key_points_list)}\n**难点**: {'、'.join(difficult_points_list)}"
+        if key_points_list or difficult_points_list
+        else f"**重点**: {topic}的概念和性质\n**难点**: {topic}的应用"
+    )
+
+    # 教学流程 — 统一转为 Web 接口格式
+    teaching_flow = [
+        {
+            "stage":          step.get("stage", ""),
+            "duration":       step.get("duration", 5),
+            "activity":       "、".join(step.get("activities", [])) if isinstance(step.get("activities"), list) else step.get("activities", ""),
+            "method":         step.get("methods", "讲授/探究"),
+            "teacher_action": "、".join(step.get("activities", [])) if isinstance(step.get("activities"), list) else step.get("activities", ""),
+            "student_action": "听讲、思考",
+        }
+        for step in teaching_process
+    ]
+
+    # 生成 Markdown 格式正文（复用 assistant 的格式化方法）
+    from dataclasses import fields as dc_fields
+    from skills.lesson_preparation import LessonPlan as SkillLessonPlan
+
+    try:
+        lp_obj = SkillLessonPlan(**{
+            k: lesson_plan_dict[k]
+            for k in (f.name for f in dc_fields(SkillLessonPlan))
+            if k in lesson_plan_dict
+        })
+        content = assistant.format_lesson_plan_for_display(lp_obj)
+    except Exception:
+        # 降级：把整个 lesson_plan_dict 序列化为可读文本
+        content = json.dumps(lesson_plan_dict, ensure_ascii=False, indent=2)
+
+    # 教学资源
+    resources_needed = lesson_plan_dict.get("resources_needed", [])
+    resources = [{"type": "other", "name": r, "url": ""} for r in resources_needed] or [
+        {"type": "ppt",      "name": f"{topic}课件",     "url": ""},
+        {"type": "video",    "name": f"{topic}讲解视频", "url": ""},
+        {"type": "exercise", "name": f"{topic}练习题",   "url": ""},
+    ]
+
+    logger.info(f"========== LessonPreparationAssistant Done ==========")
+    logger.info(f"content length={len(content)}, generation_time={generation_time:.2f}s")
 
     return {
-        "title": f"{education_level}{plan_data.subject}《{topic}》教学设计",
-        "objectives": objectives,
-        "key_points": f"**重点**: {topic}的概念和性质\n**难点**: {topic}的应用",
-        "content": content,
+        "title":         f"{course_name}《{topic}》教学设计",
+        "objectives":    objectives,
+        "key_points":    key_points_str,
+        "content":       content,
         "teaching_flow": teaching_flow,
-        "resources": [
-            {"type": "ppt", "name": f"{topic}课件", "url": ""},
-            {"type": "video", "name": f"{topic}讲解视频", "url": ""},
-            {"type": "exercise", "name": f"{topic}练习题", "url": ""},
-        ],
+        "resources":     resources,
         "generation_time": round(generation_time, 2),
     }
 
 
-def _extract_objectives(content: str) -> dict:
-    """从生成内容中提取教学目标"""
-    knowledge = []
-    skill = []
-    emotion = []
 
-    lines = content.split("\n")
-    current_type = None
-
-    for line in lines:
-        line = line.strip()
-        if "知识与技能" in line or "知识目标" in line:
-            current_type = "knowledge"
-        elif "过程与方法" in line or "能力目标" in line:
-            current_type = "skill"
-        elif "情感态度" in line or "情感目标" in line:
-            current_type = "emotion"
-        elif line.startswith("- ") and current_type:
-            obj = line[2:].strip()
-            if current_type == "knowledge":
-                knowledge.append(obj)
-            elif current_type == "skill":
-                skill.append(obj)
-            elif current_type == "emotion":
-                emotion.append(obj)
-
-    # 如果没有提取到，使用默认值
-    if not knowledge:
-        knowledge = ["理解本节课的基本概念", "掌握相关核心原理"]
-    if not skill:
-        skill = ["培养分析问题能力", "提升解决问题能力"]
-    if not emotion:
-        emotion = ["激发学习兴趣", "培养科学态度"]
-
-    return {"knowledge": knowledge, "skill": skill, "emotion": emotion}
-
-
-def _extract_teaching_flow(content: str) -> list:
-    """从生成内容中提取教学流程"""
-    teaching_flow = []
-
-    # 常见教学环节
-    phases = ["导入", "新授", "讲授", "练习", "小结", "总结", "作业"]
-    current_phase = None
-    current_activity = ""
-
-    lines = content.split("\n")
-    for line in lines:
-        line = line.strip()
-
-        # 检测阶段
-        for phase in phases:
-            if phase in line and ("（" in line or len(line) < 10):
-                if current_phase:
-                    teaching_flow.append(
-                        {
-                            "stage": current_phase,
-                            "duration": 5,
-                            "activity": current_activity,
-                            "method": "讲授/探究",
-                            "teacher_action": current_activity,
-                            "student_action": "听讲、思考",
-                        }
-                    )
-                current_phase = phase
-                current_activity = line
-                break
-
-    # 添加最后一个阶段
-    if current_phase:
-        teaching_flow.append(
-            {
-                "stage": current_phase,
-                "duration": 5,
-                "activity": current_activity,
-                "method": "讲授/探究",
-                "teacher_action": current_activity,
-                "student_action": "听讲、思考",
-            }
-        )
-
-    # 如果没有提取到，使用默认流程
-    if not teaching_flow:
-        teaching_flow = [
-            {
-                "stage": "导入",
-                "duration": 5,
-                "activity": "创设情境",
-                "method": "导入",
-                "teacher_action": "提出问题",
-                "student_action": "思考回答",
-            },
-            {
-                "stage": "新授",
-                "duration": 20,
-                "activity": "讲解概念",
-                "method": "讲授",
-                "teacher_action": "讲解",
-                "student_action": "听讲",
-            },
-            {
-                "stage": "练习",
-                "duration": 10,
-                "activity": "课堂练习",
-                "method": "练习",
-                "teacher_action": "巡视指导",
-                "student_action": "完成练习",
-            },
-            {
-                "stage": "小结",
-                "duration": 5,
-                "activity": "总结",
-                "method": "讲授",
-                "teacher_action": "总结",
-                "student_action": "记录",
-            },
-        ]
-
-    return teaching_flow

@@ -158,7 +158,7 @@ class SchedulePlanSkill:
         course_info: Dict[str, Any] = None,
     ) -> None:
         """保存进度计划（JSON格式）"""
-        from ai_teacher_agent.tools.file_tools import JsonGenerator, FileTool
+        from tools.file_tools import JsonGenerator, FileTool
 
         generator = JsonGenerator()
         textbook_name = course_info.get("textbook_name", "") if course_info else ""
